@@ -11,9 +11,7 @@ pub fn read_magic<T: BitstreamReader>(reader: &mut T) -> Result<(), Error> {
     }
 }
 
-pub fn read_metadata_block<T: BitstreamReader>(
-    reader: &mut T,
-) -> Result<MetadataBlock, Error> {
+pub fn read_metadata_block<T: BitstreamReader>(reader: &mut T) -> Result<MetadataBlock, Error> {
     let is_last = reader.read_bit()?;
     let block_type = reader.read_sized(7)? as u8;
     let length = reader.read_sized(24)? as u32;

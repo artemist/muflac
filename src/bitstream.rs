@@ -18,10 +18,10 @@ pub struct BufferedBitstreamReader<T: Read> {
     bit_idx: u8,
 }
 
-impl<T: Read> BufferedBitstreamReader<T> {
-    pub fn new(filename: &Path) -> io::Result<BufferedBitstreamReader<File>> {
-        let mut file = File::open(filename)?;
-        let mut reader = BufReader::new(file);
+impl BufferedBitstreamReader<File> {
+    pub fn open(filename: &Path) -> io::Result<Self> {
+        let file = File::open(filename)?;
+        let reader = BufReader::new(file);
 
         Ok(BufferedBitstreamReader {
             reader,
@@ -30,21 +30,24 @@ impl<T: Read> BufferedBitstreamReader<T> {
             bit_idx: 8,
         })
     }
+}
 
+impl<T: Read> BufferedBitstreamReader<T> {
     #[inline(always)]
-    fn refill_if_necessary(&mut self) {
+    fn refill_if_necessary(&mut self) -> io::Result<()> {
         if self.bit_idx == 8 {
             let mut buf = [0u8; 1];
-            self.reader.read_exact(&mut buf);
+            self.reader.read_exact(&mut buf)?;
             self.curr_byte = buf[0];
             self.bit_idx = 0;
         }
+        Ok(())
     }
 }
 
 impl<T: Read> BitstreamReader for BufferedBitstreamReader<T> {
     fn read_bit(&mut self) -> io::Result<bool> {
-        self.refill_if_necessary();
+        self.refill_if_necessary()?;
         let result = (self.curr_byte >> (7 - self.bit_idx)) & 1 == 1;
         self.bit_idx += 1;
         self.total_position += 1;
@@ -52,7 +55,7 @@ impl<T: Read> BitstreamReader for BufferedBitstreamReader<T> {
     }
 
     fn read_bytes(&mut self, num_bytes: usize) -> io::Result<Box<[u8]>> {
-        self.refill_if_necessary();
+        self.refill_if_necessary()?;
 
         self.total_position += 8 * num_bytes;
         // fast aligned path
@@ -68,7 +71,7 @@ impl<T: Read> BitstreamReader for BufferedBitstreamReader<T> {
     }
 
     fn read_bits(&mut self, num_bits: usize) -> io::Result<Box<[bool]>> {
-        unimplemented!()
+        unimplemented!("{}", num_bits)
     }
 
     fn read_sized(&mut self, num_bits: u8) -> io::Result<u128> {
@@ -79,7 +82,7 @@ impl<T: Read> BitstreamReader for BufferedBitstreamReader<T> {
 
         // TODO: make this more efficfient
         while bits_left > 0 {
-            self.refill_if_necessary();
+            self.refill_if_necessary()?;
 
             let next_bit = (self.curr_byte >> (7 - self.bit_idx)) & 1;
             //println!("total bits: {}, bits left: {}, next bit: {}, data: {}", num_bits, bits_left, next_bit, data);
