@@ -1,9 +1,11 @@
-pub(crate) struct MetadataBlock {
+#[derive(Debug)]
+pub struct MetadataBlock {
     pub is_last: bool,
     pub content: MetadataBlockData,
 }
 
-pub(crate) enum MetadataBlockData {
+#[derive(Debug)]
+pub enum MetadataBlockData {
     StreamInfo(MetadataBlockStreamInfo),
     Padding,                // No content
     Application(Box<[u8]>), // Application defined
@@ -15,7 +17,8 @@ pub(crate) enum MetadataBlockData {
     Invalid,
 }
 
-pub(crate) struct MetadataBlockStreamInfo {
+#[derive(Debug)]
+pub struct MetadataBlockStreamInfo {
     pub min_block_size: u16,
     pub max_block_size: u16,
     pub min_frame_size: u32,    // 24 bits used
@@ -27,24 +30,28 @@ pub(crate) struct MetadataBlockStreamInfo {
     pub decoded_checksum: u128, // MD5
 }
 
-pub(crate) struct MetadataBlockSeekTable {
+#[derive(Debug)]
+pub struct MetadataBlockSeekTable {
     pub seek_points: Box<[SeekPoint]>,
 }
 
-pub(crate) struct SeekPoint {
+#[derive(Debug)]
+pub struct SeekPoint {
     pub sample_number: u64,
     pub frame_offset: u64,
     pub num_samples: u16,
 }
 
-pub(crate) struct MetadataBlockCueSheet {
-    pub catalog_number: [u8; 128],
+#[derive(Debug)]
+pub struct MetadataBlockCueSheet {
+    pub catalog_number: Box<[u8]>,
     pub num_lead_in_samples: u64,
     pub is_cd: bool,
     pub tracks: Box<[CueSheetTrack]>,
 }
 
-pub(crate) struct CueSheetTrack {
+#[derive(Debug)]
+pub struct CueSheetTrack {
     pub track_offset: u64,
     pub track_num: u8,
     pub track_isrc: [u8; 12],
@@ -53,12 +60,14 @@ pub(crate) struct CueSheetTrack {
     pub indices: Box<[CueSheetTrackIndex]>,
 }
 
-pub(crate) struct CueSheetTrackIndex {
+#[derive(Debug)]
+pub struct CueSheetTrackIndex {
     pub offset: u64,
     pub index_point: u8,
 }
 
-pub(crate) struct MetadataBlockPicture {
+#[derive(Debug)]
+pub struct MetadataBlockPicture {
     pub picture_type: PictureType,
     pub mime_type: Box<[u8]>,
     pub description: Box<[u8]>,
@@ -69,7 +78,8 @@ pub(crate) struct MetadataBlockPicture {
     pub picture: Box<[u8]>,
 }
 
-pub(crate) enum PictureType {
+#[derive(Debug)]
+pub enum PictureType {
     Other = 0,
     FileIcon32 = 1,
     FileIcon = 2,

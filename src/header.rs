@@ -2,7 +2,7 @@ use crate::bitstream::BitstreamReader;
 use crate::error::Error;
 use crate::metadata_types::{MetadataBlock, MetadataBlockData, MetadataBlockStreamInfo};
 
-pub(crate) fn read_magic<T: BitstreamReader>(reader: &mut T) -> Result<(), Error> {
+pub fn read_magic<T: BitstreamReader>(reader: &mut T) -> Result<(), Error> {
     let magic = &*reader.read_bytes(4)?;
     if magic == &b"fLaC"[..] {
         Ok(())
@@ -11,7 +11,7 @@ pub(crate) fn read_magic<T: BitstreamReader>(reader: &mut T) -> Result<(), Error
     }
 }
 
-pub(crate) fn read_metadata_block<T: BitstreamReader>(
+pub fn read_metadata_block<T: BitstreamReader>(
     reader: &mut T,
 ) -> Result<MetadataBlock, Error> {
     let is_last = reader.read_bit()?;
@@ -38,7 +38,7 @@ pub(crate) fn read_metadata_block<T: BitstreamReader>(
     })
 }
 
-pub(crate) fn read_stream_info_block<T: BitstreamReader>(
+pub fn read_stream_info_block<T: BitstreamReader>(
     reader: &mut T,
 ) -> Result<MetadataBlockStreamInfo, Error> {
     let min_block_size = reader.read_sized(16)? as u16;

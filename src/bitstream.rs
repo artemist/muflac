@@ -3,7 +3,7 @@ use std::io;
 use std::io::{BufReader, Read};
 use std::path::Path;
 
-pub(crate) trait BitstreamReader {
+pub trait BitstreamReader {
     fn read_bit(&mut self) -> io::Result<bool>;
     fn read_bytes(&mut self, num_bytes: usize) -> io::Result<Box<[u8]>>;
     fn read_bits(&mut self, num_bits: usize) -> io::Result<Box<[bool]>>;
@@ -11,15 +11,15 @@ pub(crate) trait BitstreamReader {
     fn get_total_position(&self) -> usize;
 }
 
-pub(crate) struct BufferedBitstreamReader {
-    reader: BufReader<File>,
+pub struct BufferedBitstreamReader<T: Read> {
+    reader: BufReader<T>,
     total_position: usize,
     curr_byte: u8,
     bit_idx: u8,
 }
 
-impl BufferedBitstreamReader {
-    pub fn new(filename: &Path) -> io::Result<BufferedBitstreamReader> {
+impl<T: Read> BufferedBitstreamReader<T> {
+    pub fn new(filename: &Path) -> io::Result<BufferedBitstreamReader<File>> {
         let mut file = File::open(filename)?;
         let mut reader = BufReader::new(file);
 
@@ -33,7 +33,7 @@ impl BufferedBitstreamReader {
 
     #[inline(always)]
     fn refill_if_necessary(&mut self) {
-        if self.bit_idx >= 8 {
+        if self.bit_idx == 8 {
             let mut buf = [0u8; 1];
             self.reader.read_exact(&mut buf);
             self.curr_byte = buf[0];
@@ -42,10 +42,10 @@ impl BufferedBitstreamReader {
     }
 }
 
-impl BitstreamReader for BufferedBitstreamReader {
+impl<T: Read> BitstreamReader for BufferedBitstreamReader<T> {
     fn read_bit(&mut self) -> io::Result<bool> {
         self.refill_if_necessary();
-        let result = (self.curr_byte >> self.bit_idx) & 1 == 1;
+        let result = (self.curr_byte >> (7 - self.bit_idx)) & 1 == 1;
         self.bit_idx += 1;
         self.total_position += 1;
         Ok(result)
@@ -58,7 +58,9 @@ impl BitstreamReader for BufferedBitstreamReader {
         // fast aligned path
         if self.bit_idx == 0 {
             let mut buf = vec![0u8; num_bytes];
-            self.reader.read_exact(&mut buf)?;
+            self.reader.read_exact(&mut buf[1..])?;
+            buf[0] = self.curr_byte;
+            self.bit_idx = 8;
             Ok(buf.into_boxed_slice())
         } else {
             unimplemented!()
@@ -75,11 +77,12 @@ impl BitstreamReader for BufferedBitstreamReader {
         let mut data = 0u128;
         let mut bits_left = num_bits;
 
-        // TODO: make this more efficient
+        // TODO: make this more efficfient
         while bits_left > 0 {
             self.refill_if_necessary();
 
-            let next_bit = (self.curr_byte >> self.bit_idx) & 1;
+            let next_bit = (self.curr_byte >> (7 - self.bit_idx)) & 1;
+            //println!("total bits: {}, bits left: {}, next bit: {}, data: {}", num_bits, bits_left, next_bit, data);
             data = data << 1 | (next_bit as u128);
             self.bit_idx += 1;
             self.total_position += 1;
