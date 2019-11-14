@@ -128,7 +128,6 @@ impl<T: Read> BitstreamReader for BufferedBitstreamReader<T> {
             self.refill_if_necessary()?;
 
             let next_bit = (self.curr_byte >> (7 - self.bit_idx)) & 1;
-            //println!("total bits: {}, bits left: {}, next bit: {}, data: {}", num_bits, bits_left, next_bit, data);
             data = data << 1 | (next_bit as u128);
             self.bit_idx += 1;
             self.total_position += 1;
@@ -142,3 +141,5 @@ impl<T: Read> BitstreamReader for BufferedBitstreamReader<T> {
         self.total_position
     }
 }
+
+pub fn sign_extend(data: u32, in_size: u8)

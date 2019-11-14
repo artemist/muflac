@@ -9,6 +9,7 @@ pub struct Frame {
     pub frame_or_sample_number: Option<u64>,
     pub header_crc: u8,
     pub subframes: Box<[Subframe]>,
+    pub overall_crc: u16,
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -53,19 +54,20 @@ pub struct LPCSubframe {
     pub order: u8,
     pub warmup: Box<[u32]>,
     pub coefficient_precision: u8,
-    pub shift: u8, // Should be sign extended to u8
-    pub coefficient: Box<[u8]>,
+    pub shift: i8, // Should be sign extended to i8
+    pub coefficients: Box<[i16]>,
     pub residual: Residual,
 }
 
 #[derive(Debug, Clone)]
 pub struct Residual {
-    pub order: u8, // RICE is 4, RICE2 = 5
+    pub parameter_size: u8, // RICE is 4, RICE2 = 5
+    pub order: u8,
     pub partitions: Box<[RICEPartition]>,
 }
 
 #[derive(Debug, Clone)]
 pub struct RICEPartition {
-    pub parameter: u8,
+    pub encoding_parameter: u8,
     pub residual: Box<[u32]>,
 }

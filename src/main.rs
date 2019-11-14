@@ -1,16 +1,16 @@
 use muflac::bitstream::BufferedBitstreamReader;
 use muflac::block_parser::{read_magic, read_metadata_block};
 use muflac::error::Error;
+use muflac::frame_parser::read_frame;
 use muflac::metadata_types::{MetadataBlock, MetadataBlockData};
 use std::env::args_os;
 use std::fs::File;
 use std::path::Path;
-use muflac::frame_parser::read_frame;
 
 fn main() {
     let mut args_iter = args_os();
     args_iter.next();
-    let filename = args_iter.next().unwrap();
+    let filename = args_iter.next().unwrap_or("test.flac".into());
     let file = Path::new(&filename);
     let mut stream = BufferedBitstreamReader::<File>::open(file)
         .unwrap_or_else(|e| panic!("Unable to create reader {:?}", e));
@@ -22,8 +22,9 @@ fn main() {
     println!("streaminfo block: {:?}", block);
     let stream_info = match &block.as_ref().unwrap().content {
         MetadataBlockData::StreamInfo(si) => Some(si),
-        _ => None
-    }.unwrap();
+        _ => None,
+    }
+    .unwrap();
 
     let mut finished = is_last(block);
     while !finished {
