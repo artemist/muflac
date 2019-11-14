@@ -2,7 +2,7 @@ use crate::bitstream::BitstreamReader;
 use crate::error::Error;
 use crate::metadata_types::{MetadataBlock, MetadataBlockData, MetadataBlockStreamInfo};
 
-pub fn read_magic<T: BitstreamReader>(reader: &mut T) -> Result<(), Error> {
+pub fn read_magic(reader: &mut dyn BitstreamReader) -> Result<(), Error> {
     let magic = &*reader.read_bytes(4)?;
     if magic == &b"fLaC"[..] {
         Ok(())
@@ -11,7 +11,7 @@ pub fn read_magic<T: BitstreamReader>(reader: &mut T) -> Result<(), Error> {
     }
 }
 
-pub fn read_metadata_block<T: BitstreamReader>(reader: &mut T) -> Result<MetadataBlock, Error> {
+pub fn read_metadata_block(reader: &mut dyn BitstreamReader) -> Result<MetadataBlock, Error> {
     let is_last = reader.read_bit()?;
     let block_type = reader.read_sized(7)? as u8;
     let length = reader.read_sized(24)? as u32;
@@ -22,10 +22,22 @@ pub fn read_metadata_block<T: BitstreamReader>(reader: &mut T) -> Result<Metadat
             MetadataBlockData::Padding
         }
         2 => MetadataBlockData::Application(reader.read_bytes(length as usize)?),
-        3 => unimplemented!(),
-        4 => unimplemented!(),
-        5 => unimplemented!(),
-        6 => unimplemented!(),
+        3 => {
+            reader.read_bytes(length as usize)?;
+            MetadataBlockData::TodoUnimplemented(block_type)
+        }
+        4 => {
+            reader.read_bytes(length as usize)?;
+            MetadataBlockData::TodoUnimplemented(block_type)
+        }
+        5 => {
+            reader.read_bytes(length as usize)?;
+            MetadataBlockData::TodoUnimplemented(block_type)
+        }
+        6 => {
+            reader.read_bytes(length as usize)?;
+            MetadataBlockData::TodoUnimplemented(block_type)
+        }
         127 => MetadataBlockData::Invalid,
         n => MetadataBlockData::Reserved(n),
     };
@@ -36,8 +48,8 @@ pub fn read_metadata_block<T: BitstreamReader>(reader: &mut T) -> Result<Metadat
     })
 }
 
-pub fn read_stream_info_block<T: BitstreamReader>(
-    reader: &mut T,
+pub fn read_stream_info_block(
+    reader: &mut dyn BitstreamReader,
 ) -> Result<MetadataBlockStreamInfo, Error> {
     let min_block_size = reader.read_sized(16)? as u16;
     let max_block_size = reader.read_sized(16)? as u16;

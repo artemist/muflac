@@ -1,23 +1,24 @@
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct MetadataBlock {
     pub is_last: bool,
     pub content: MetadataBlockData,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum MetadataBlockData {
     StreamInfo(MetadataBlockStreamInfo),
     Padding,                // No content
     Application(Box<[u8]>), // Application defined
     SeekTable(MetadataBlockSeekTable),
-    VorbisComment(Box<[u8]>), // Parsing is not our job™
+    VorbisComment(Box<[u8]>), // Parsing is Not Our Job™
     CueSheet(MetadataBlockCueSheet),
     Picture(MetadataBlockPicture),
     Reserved(u8),
     Invalid,
+    TodoUnimplemented(u8),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct MetadataBlockStreamInfo {
     pub min_block_size: u16,
     pub max_block_size: u16,
@@ -30,19 +31,19 @@ pub struct MetadataBlockStreamInfo {
     pub decoded_checksum: u128, // MD5
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct MetadataBlockSeekTable {
     pub seek_points: Box<[SeekPoint]>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct SeekPoint {
     pub sample_number: u64,
     pub frame_offset: u64,
     pub num_samples: u16,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct MetadataBlockCueSheet {
     pub catalog_number: Box<[u8]>,
     pub num_lead_in_samples: u64,
@@ -50,7 +51,7 @@ pub struct MetadataBlockCueSheet {
     pub tracks: Box<[CueSheetTrack]>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct CueSheetTrack {
     pub track_offset: u64,
     pub track_num: u8,
@@ -60,13 +61,13 @@ pub struct CueSheetTrack {
     pub indices: Box<[CueSheetTrackIndex]>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct CueSheetTrackIndex {
     pub offset: u64,
     pub index_point: u8,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct MetadataBlockPicture {
     pub picture_type: PictureType,
     pub mime_type: Box<[u8]>,
@@ -78,7 +79,7 @@ pub struct MetadataBlockPicture {
     pub picture: Box<[u8]>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum PictureType {
     Other = 0,
     FileIcon32 = 1,
