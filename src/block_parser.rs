@@ -13,8 +13,8 @@ pub fn read_magic(reader: &mut dyn BitstreamReader) -> Result<(), Error> {
 
 pub fn read_metadata_block(reader: &mut dyn BitstreamReader) -> Result<MetadataBlock, Error> {
     let is_last = reader.read_bit()?;
-    let block_type = reader.read_sized(7)? as u8;
-    let length = reader.read_sized(24)? as u32;
+    let block_type = reader.read_unsigned(7)? as u8;
+    let length = reader.read_unsigned(24)? as u32;
     let data = match block_type {
         0 => MetadataBlockData::StreamInfo(read_stream_info_block(reader)?),
         1 => {
@@ -51,15 +51,15 @@ pub fn read_metadata_block(reader: &mut dyn BitstreamReader) -> Result<MetadataB
 pub fn read_stream_info_block(
     reader: &mut dyn BitstreamReader,
 ) -> Result<MetadataBlockStreamInfo, Error> {
-    let min_block_size = reader.read_sized(16)? as u16;
-    let max_block_size = reader.read_sized(16)? as u16;
-    let min_frame_size = reader.read_sized(24)? as u32;
-    let max_frame_size = reader.read_sized(24)? as u32;
-    let sample_rate = reader.read_sized(20)? as u32;
-    let num_channels = reader.read_sized(3)? as u8 + 1;
-    let sample_depth = reader.read_sized(5)? as u8 + 1;
-    let num_samples = reader.read_sized(36)? as u64;
-    let decoded_checksum = reader.read_sized(128)?;
+    let min_block_size = reader.read_unsigned(16)? as u16;
+    let max_block_size = reader.read_unsigned(16)? as u16;
+    let min_frame_size = reader.read_unsigned(24)? as u32;
+    let max_frame_size = reader.read_unsigned(24)? as u32;
+    let sample_rate = reader.read_unsigned(20)? as u32;
+    let num_channels = reader.read_unsigned(3)? as u8 + 1;
+    let sample_depth = reader.read_unsigned(5)? as u8 + 1;
+    let num_samples = reader.read_unsigned(36)? as u64;
+    let decoded_checksum = reader.read_unsigned(128)?;
 
     Ok(MetadataBlockStreamInfo {
         min_block_size,

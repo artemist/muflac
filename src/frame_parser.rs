@@ -12,7 +12,7 @@ pub fn read_frame(
     reader: &mut dyn BitstreamReader,
     stream_info: &MetadataBlockStreamInfo,
 ) -> Result<Frame, Error> {
-    let sync_code = reader.read_sized(14)?;
+    let sync_code = reader.read_unsigned(14)?;
     if sync_code != 0b11_1111_1111_1110 {
         return Err(Error::Content);
     }
@@ -22,10 +22,10 @@ pub fn read_frame(
     }
 
     let is_variable = reader.read_bit()?;
-    let block_size_raw = reader.read_sized(4)? as u8;
-    let sample_rate_raw = reader.read_sized(4)? as u8;
-    let channel_assignment_raw: u8 = reader.read_sized(4)? as u8;
-    let sample_depth_raw = reader.read_sized(3)? as u8;
+    let block_size_raw = reader.read_unsigned(4)? as u8;
+    let sample_rate_raw = reader.read_unsigned(4)? as u8;
+    let channel_assignment_raw: u8 = reader.read_unsigned(4)? as u8;
+    let sample_depth_raw = reader.read_unsigned(3)? as u8;
 
     if reader.read_bit()? {
         return Err(Error::Reserved);
@@ -37,8 +37,8 @@ pub fn read_frame(
     let block_size = match block_size_raw {
         0b0000 => Err(Error::Reserved),
         0b0001 => Ok(192),
-        0b0110 => Ok(reader.read_sized(8)? as u32 + 1),
-        0b0111 => Ok(reader.read_sized(16)? as u32 + 1),
+        0b0110 => Ok(reader.read_unsigned(8)? as u32 + 1),
+        0b0111 => Ok(reader.read_unsigned(16)? as u32 + 1),
         x if x >= 0b0010 && x <= 0b0101 => Ok(576 << (x - 2)),
         x if x >= 0b1000 && x <= 0b1111 => Ok(256 << (x - 8)),
         _ => unreachable!(),
@@ -57,9 +57,9 @@ pub fn read_frame(
         0b1001 => Ok(44_100),
         0b1010 => Ok(48_000),
         0b1011 => Ok(96_000),
-        0b1100 => Ok(reader.read_sized(8)? as u32),
-        0b1101 => Ok(reader.read_sized(16)? as u32),
-        0b1110 => Ok(reader.read_sized(16)? as u32 * 10),
+        0b1100 => Ok(reader.read_unsigned(8)? as u32),
+        0b1101 => Ok(reader.read_unsigned(16)? as u32),
+        0b1110 => Ok(reader.read_unsigned(16)? as u32 * 10),
         0b1111 => Err(Error::Reserved),
         _ => unreachable!(),
     }?;
@@ -91,14 +91,14 @@ pub fn read_frame(
         _ => unreachable!(),
     }?;
 
-    let header_crc = reader.read_sized(8)? as u8;
+    let header_crc = reader.read_unsigned(8)? as u8;
 
     let mut subframes = Vec::new();
     for i in 0..num_channels {
         subframes.push(read_subframe(reader, sample_depth, block_size)?);
     }
 
-    let overall_crc = reader.read_sized(16)? as u16;
+    let overall_crc = reader.read_unsigned(16)? as u16;
 
     Ok(Frame {
         is_variable,
@@ -123,7 +123,7 @@ fn read_subframe(
         return Err(Error::Content);
     }
 
-    let subframe_type = reader.read_sized(6)? as u8;
+    let subframe_type = reader.read_unsigned(6)? as u8;
 
     let wasted_bits = if reader.read_bit()? {
         reader.read_unary(false)? as u8 + 1
@@ -170,7 +170,7 @@ fn read_constant_subframe(
     sample_depth: u8,
 ) -> Result<ConstantSubframe, Error> {
     Ok(ConstantSubframe {
-        content: reader.read_sized(sample_depth)? as u32,
+        content: reader.read_signed(sample_depth)? as i32,
     })
 }
 
@@ -182,7 +182,7 @@ fn read_verbatim_subframe(
     let mut data = Vec::new();
 
     for _ in 0..block_size {
-        data.push(reader.read_sized(sample_depth)? as u32);
+        data.push(reader.read_signed(sample_depth)? as i32);
     }
 
     Ok(VerbatimSubframe {
@@ -200,7 +200,7 @@ fn read_fixed_subframe(
     let mut warmup = Vec::new();
 
     for _ in 0..order {
-        warmup.push(reader.read_sized(sample_depth)? as u32)
+        warmup.push(reader.read_signed(sample_depth)? as i32)
     }
 
     let residual = read_residual(reader, block_size, order)?;
@@ -222,45 +222,46 @@ fn read_lpc_subframe(
     let mut warmup = Vec::new();
 
     for _ in 0..predictor_order {
-        warmup.push(reader.read_sized(sample_depth)? as u32)
+        warmup.push(reader.read_signed(sample_depth)? as i32)
     }
 
-    let coefficient_precision = reader.read_sized(4)? as u8 + 1;
+    dbg!(&warmup);
+
+    let coefficient_precision = reader.read_unsigned(4)? as u8 + 1;
     if coefficient_precision == 16 {
         return Err(Error::Reserved)
     }
 
-    let shift_raw = reader.read_sized(5)? as u8;
-    let shift = (shift_raw << 3) as i8 >> 3;
+    let shift = reader.read_signed(5)? as i8;
 
     let mut coefficients = Vec::new();
 
     let required_shift = 16 - coefficient_precision;
     for _ in 0..predictor_order {
-        let coefficient_raw = reader.read_sized(coefficient_precision)? as u16;
-        let coefficient = (coefficient_raw << (required_shift as u16)) as i16 >> (required_shift as i16);
+        let coefficient = reader.read_signed(coefficient_precision)? as i16;
         coefficients.push(coefficient);
     }
 
     let residual = read_residual(reader, block_size, predictor_order)?;
 
-    Ok(LPCSubframe {
-        order: predictor_order,
-        warmup: warmup.into_boxed_slice(),
-        coefficient_precision,
-        shift,
-        coefficients: coefficients.into_boxed_slice(),
-        residual
-    })
+    Err(Error::TooLong)
+//    Ok(LPCSubframe {
+//        order: predictor_order,
+//        warmup: warmup.into_boxed_slice(),
+//        coefficient_precision,
+//        shift,
+//        coefficients: coefficients.into_boxed_slice(),
+//        residual
+//    })
 }
 
 fn read_residual(reader: &mut dyn BitstreamReader, block_size: u32, predictor_order: u8) -> Result<Residual, Error> {
-    let rice_type = reader.read_sized(2)? as u8;
+    let rice_type = reader.read_unsigned(2)? as u8;
     if rice_type >= 0b10 {
         return Err(Error::Reserved);
     }
     let parameter_size = 4 + rice_type;
-    let partition_order = reader.read_sized(4)? as u8;
+    let partition_order = reader.read_unsigned(4)? as u8;
 
     let mut partitions = Vec::new();
 
@@ -296,14 +297,14 @@ fn read_rice_partition(
         block_size >> partition_order as u32
     };
 
-    let encoding_parameter = reader.read_sized(parameter_size)? as u8;
+    let encoding_parameter = reader.read_unsigned(parameter_size)? as u8;
 
     let mut residual = Vec::new();
     if encoding_parameter == 1u8 << parameter_size - 1 {
-        let residual_size = reader.read_sized(5)? as u8;
+        let residual_size = reader.read_unsigned(5)? as u8;
         // raw encoding
         for _ in 0..num_samples {
-            residual.push(reader.read_sized(residual_size)? as u32);
+            residual.push(reader.read_signed(residual_size)? as i32);
         }
     } else {
         for _ in 0..num_samples {

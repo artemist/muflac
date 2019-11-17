@@ -9,7 +9,8 @@ pub trait BitstreamReader {
     fn read_bits(&mut self, num_bits: usize) -> Result<Box<[bool]>, Error>;
     fn read_unary(&mut self, start: bool) -> Result<u32, Error>;
     fn read_utf8(&mut self, max_length: isize) -> Result<Box<str>, Error>;
-    fn read_sized(&mut self, num_bits: u8) -> Result<u128, Error>;
+    fn read_unsigned(&mut self, num_bits: u8) -> Result<u128, Error>;
+    fn read_signed(&mut self, num_bits: u8) -> Result<i128, Error>;
     fn get_total_position(&self) -> usize;
 }
 
@@ -117,7 +118,7 @@ impl<T: Read> BitstreamReader for BufferedBitstreamReader<T> {
         Ok(String::from_utf8(raw_data)?.into_boxed_str())
     }
 
-    fn read_sized(&mut self, num_bits: u8) -> Result<u128, Error> {
+    fn read_unsigned(&mut self, num_bits: u8) -> Result<u128, Error> {
         debug_assert!(num_bits <= 128, "Cannot read {} bits into u128", num_bits);
 
         let mut data = 0u128;
@@ -137,9 +138,13 @@ impl<T: Read> BitstreamReader for BufferedBitstreamReader<T> {
         Ok(data)
     }
 
+    fn read_signed(&mut self, num_bits: u8) -> Result<i128, Error> {
+        let unsigned = self.read_unsigned(num_bits)? as i128;
+        let shift = (128 - num_bits) as i128;
+        Ok(((unsigned << shift) >> shift) as i128)
+    }
+
     fn get_total_position(&self) -> usize {
         self.total_position
     }
 }
-
-pub fn sign_extend(data: u32, in_size: u8)

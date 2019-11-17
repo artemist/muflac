@@ -36,23 +36,23 @@ pub enum SubframeData {
 
 #[derive(Debug, Clone)]
 pub struct ConstantSubframe {
-    pub content: u32,
+    pub content: i32,
 }
 #[derive(Debug, Clone)]
 pub struct VerbatimSubframe {
-    pub content: Box<[u32]>,
+    pub content: Box<[i32]>,
 }
 #[derive(Debug, Clone)]
 pub struct FixedSubframe {
     pub order: u8,
-    pub warmup: Box<[u32]>,
+    pub warmup: Box<[i32]>,
     pub residual: Residual,
 }
 
 #[derive(Debug, Clone)]
 pub struct LPCSubframe {
     pub order: u8,
-    pub warmup: Box<[u32]>,
+    pub warmup: Box<[i32]>,
     pub coefficient_precision: u8,
     pub shift: i8, // Should be sign extended to i8
     pub coefficients: Box<[i16]>,
@@ -69,5 +69,5 @@ pub struct Residual {
 #[derive(Debug, Clone)]
 pub struct RICEPartition {
     pub encoding_parameter: u8,
-    pub residual: Box<[u32]>,
+    pub residual: Box<[i32]>,
 }
